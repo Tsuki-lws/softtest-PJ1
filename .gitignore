@@ -16,3 +16,7 @@ __MACOSX/
 # Temporary files
 *.tmp
 *.bak
+
+# Local handoff notes (AI agent scratchpads, not team deliverables)
+NEXT_AGENT_HANDOFF.md
+SoftwareTestingDemo/SoftwareTestingDemo/NEXT_AGENT_HANDOFF.md
