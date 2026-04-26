@@ -1,0 +1,145 @@
+@page {
+  size: A4;
+  margin: 16mm 18mm 18mm 18mm;
+}
+
+:root {
+  --ink: #1f2328;
+  --muted: #5f6b76;
+  --accent: #1f4e79;
+  --rule: #d7dee8;
+}
+
+html {
+  font-size: 11.5pt;
+}
+
+body {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Noto Serif CJK SC", "Source Han Serif SC", "Songti SC", serif;
+  color: var(--ink);
+  line-height: 1.72;
+  max-width: 172mm;
+  margin: 0 auto;
+  -webkit-font-smoothing: antialiased;
+  text-align: left;
+}
+
+h1, h2, h3 {
+  font-family: "PingFang SC", "Hiragino Sans GB", "Noto Sans CJK SC", "Heiti SC", sans-serif;
+  color: var(--accent);
+  line-height: 1.35;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 25pt;
+  margin: 0 0 8mm 0;
+  padding-bottom: 3.5mm;
+  border-bottom: 2px solid var(--accent);
+  letter-spacing: 0.3px;
+}
+
+h2 {
+  font-size: 16pt;
+  margin: 7mm 0 3mm 0;
+}
+
+h3 {
+  font-size: 13pt;
+  margin: 5mm 0 2mm 0;
+}
+
+p {
+  margin: 0 0 3.2mm 0;
+  text-align: left;
+}
+
+ul, ol {
+  margin: 0 0 3.2mm 0;
+  padding-left: 1.4em;
+}
+
+li {
+  margin: 0 0 1.8mm 0;
+}
+
+li > p {
+  margin: 0;
+}
+
+strong {
+  font-weight: 700;
+}
+
+code {
+  font-family: "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 0.95em;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 3mm 0 4mm 0;
+  font-size: 10.5pt;
+}
+
+thead {
+  display: table-header-group;
+}
+
+tr, img {
+  page-break-inside: avoid;
+}
+
+th, td {
+  border: 1px solid var(--rule);
+  padding: 2.2mm 2.8mm;
+  vertical-align: top;
+}
+
+th {
+  background: #f2f6fb;
+  font-weight: 700;
+  text-align: left;
+}
+
+blockquote {
+  margin: 4mm 0;
+  padding: 2mm 4mm;
+  border-left: 3px solid var(--accent);
+  color: var(--muted);
+  background: #f8fafc;
+}
+
+hr {
+  border: none;
+  border-top: 1px solid var(--rule);
+  margin: 8mm 0;
+}
+
+header#title-block-header {
+  display: none;
+}
+
+/* Tighten the first page a bit so the title block feels intentional. */
+body > h1:first-of-type + h2 {
+  margin-top: 6mm;
+}
+
+ol > li,
+ul > li {
+  page-break-inside: avoid;
+}
+
+ol > li > p,
+ul > li > p {
+  margin-bottom: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
