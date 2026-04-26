@@ -85,6 +85,21 @@ class UserControllerIntegrationTest extends AbstractControllerIntegrationTest {
     }
 
     @Test
+    void shouldNotStoreRegisteredPasswordAsPlainText() throws Exception {
+        mockMvc.perform(post("/register.do")
+                        .param("userID", "securityUser")
+                        .param("userName", "安全测试用户")
+                        .param("password", "plain123")
+                        .param("email", "security@mail.com")
+                        .param("phone", "13900000009"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("login"));
+
+        User saved = userDao.findByUserID("securityUser");
+        assertThat(saved.getPassword()).isNotEqualTo("plain123");
+    }
+
+    @Test
     void shouldLogoutNormalUser() throws Exception {
         MvcResult result = mockMvc.perform(get("/logout.do").session(userSession()))
                 .andExpect(status().is3xxRedirection())
@@ -175,6 +190,15 @@ class UserControllerIntegrationTest extends AbstractControllerIntegrationTest {
         mockMvc.perform(get("/checkPassword.do")
                         .param("userID", normalUser.getUserID())
                         .param("password", "wrong"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("false"));
+    }
+
+    @Test
+    void shouldReturnFalseWhenCheckingPasswordForUnknownUser() throws Exception {
+        mockMvc.perform(get("/checkPassword.do")
+                        .param("userID", "missing-user")
+                        .param("password", "pwd"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
     }

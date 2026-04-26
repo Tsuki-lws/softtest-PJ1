@@ -97,8 +97,21 @@ class OrderControllerIntegrationTest extends AbstractControllerIntegrationTest {
     }
 
     @Test
+    void shouldRejectNegativeOrderHours() throws Exception {
+        mockMvc.perform(post("/addOrder.do")
+                        .session(userSession())
+                        .param("venueName", venueA.getVenueName())
+                        .param("date", "2026-04-20")
+                        .param("startTime", "2026-04-20 10:00")
+                        .param("hours", "-1"))
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
     void shouldFinishOrder() throws Exception {
-        mockMvc.perform(post("/finishOrder.do").param("orderID", String.valueOf(approvedOrder.getOrderID())))
+        mockMvc.perform(post("/finishOrder.do")
+                        .session(userSession())
+                        .param("orderID", String.valueOf(approvedOrder.getOrderID())))
                 .andExpect(status().isOk());
 
         assertThat(orderDao.findByOrderID(approvedOrder.getOrderID()).getState()).isEqualTo(3);
@@ -106,7 +119,9 @@ class OrderControllerIntegrationTest extends AbstractControllerIntegrationTest {
 
     @Test
     void shouldRenderOrderEditPage() throws Exception {
-        mockMvc.perform(get("/modifyOrder.do").param("orderID", String.valueOf(approvedOrder.getOrderID())))
+        mockMvc.perform(get("/modifyOrder.do")
+                        .session(userSession())
+                        .param("orderID", String.valueOf(approvedOrder.getOrderID())))
                 .andExpect(status().isOk())
                 .andExpect(view().name("order_edit"))
                 .andExpect(model().attributeExists("venue", "order"));
@@ -145,11 +160,21 @@ class OrderControllerIntegrationTest extends AbstractControllerIntegrationTest {
 
     @Test
     void shouldDeleteOrder() throws Exception {
-        mockMvc.perform(post("/delOrder.do").param("orderID", String.valueOf(pendingOrder.getOrderID())))
+        mockMvc.perform(post("/delOrder.do")
+                        .session(userSession())
+                        .param("orderID", String.valueOf(pendingOrder.getOrderID())))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
 
         assertThat(orderDao.findByOrderID(pendingOrder.getOrderID())).isNull();
+    }
+
+    @Test
+    void shouldRejectDeletingOrderWithoutLogin() {
+        assertThatThrownBy(() -> mockMvc.perform(post("/delOrder.do")
+                        .param("orderID", String.valueOf(pendingOrder.getOrderID()))))
+                .isInstanceOf(NestedServletException.class)
+                .hasCauseInstanceOf(LoginException.class);
     }
 
     @Test

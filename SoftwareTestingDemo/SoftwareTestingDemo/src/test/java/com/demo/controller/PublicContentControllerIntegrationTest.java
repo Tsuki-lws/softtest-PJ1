@@ -51,6 +51,12 @@ class PublicContentControllerIntegrationTest extends AbstractControllerIntegrati
     }
 
     @Test
+    void shouldHandleZeroPageNumberGracefully() throws Exception {
+        mockMvc.perform(get("/news/getNewsList").param("page", "0"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void shouldRenderNewsListPage() throws Exception {
         mockMvc.perform(get("/news_list"))
                 .andExpect(status().isOk())

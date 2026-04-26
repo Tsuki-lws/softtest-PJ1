@@ -22,7 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationTest {
     @Test
     void shouldRenderVenueManagePage() throws Exception {
-        mockMvc.perform(get("/venue_manage"))
+        mockMvc.perform(get("/venue_manage").session(adminSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/venue_manage"))
                 .andExpect(model().attributeExists("total"));
@@ -30,7 +30,7 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
 
     @Test
     void shouldRenderVenueEditPage() throws Exception {
-        mockMvc.perform(get("/venue_edit").param("venueID", String.valueOf(venueA.getVenueID())))
+        mockMvc.perform(get("/venue_edit").session(adminSession()).param("venueID", String.valueOf(venueA.getVenueID())))
                 .andExpect(status().isOk())
                 .andExpect(view().name("/admin/venue_edit"))
                 .andExpect(model().attributeExists("venue"));
@@ -38,14 +38,14 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
 
     @Test
     void shouldRenderVenueAddPage() throws Exception {
-        mockMvc.perform(get("/venue_add"))
+        mockMvc.perform(get("/venue_add").session(adminSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("/admin/venue_add"));
     }
 
     @Test
     void shouldReturnVenueList() throws Exception {
-        mockMvc.perform(get("/venueList.do").param("page", "1"))
+        mockMvc.perform(get("/venueList.do").session(adminSession()).param("page", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)));
     }
@@ -54,6 +54,7 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
     void shouldAddVenueWithoutPicture() throws Exception {
         mockMvc.perform(multipart("/addVenue.do")
                         .file(emptyImage("picture"))
+                        .session(adminSession())
                         .param("venueName", "游泳馆")
                         .param("address", "浦东")
                         .param("description", "室内游泳馆")
@@ -72,6 +73,7 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
     void shouldAddVenueWithPicture() throws Exception {
         mockMvc.perform(multipart("/addVenue.do")
                         .file(new MockMultipartFile("picture", "venue.txt", "text/plain", "venue-image".getBytes()))
+                        .session(adminSession())
                         .param("venueName", "网球馆")
                         .param("address", "徐汇")
                         .param("description", "室外网球场")
@@ -91,6 +93,7 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
     void shouldModifyVenueWithoutChangingPicture() throws Exception {
         mockMvc.perform(multipart("/modifyVenue.do")
                         .file(emptyImage("picture"))
+                        .session(adminSession())
                         .param("venueID", String.valueOf(venueA.getVenueID()))
                         .param("venueName", "羽毛球馆-更新")
                         .param("address", "杨浦")
@@ -110,6 +113,7 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
     void shouldModifyVenueAndChangePicture() throws Exception {
         mockMvc.perform(multipart("/modifyVenue.do")
                         .file(new MockMultipartFile("picture", "updated.txt", "text/plain", "updated-image".getBytes()))
+                        .session(adminSession())
                         .param("venueID", String.valueOf(venueA.getVenueID()))
                         .param("venueName", "羽毛球馆-新图")
                         .param("address", "杨浦")
@@ -128,7 +132,7 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
 
     @Test
     void shouldDeleteVenue() throws Exception {
-        mockMvc.perform(post("/delVenue.do").param("venueID", String.valueOf(venueB.getVenueID())))
+        mockMvc.perform(post("/delVenue.do").session(adminSession()).param("venueID", String.valueOf(venueB.getVenueID())))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
 
@@ -137,11 +141,11 @@ class AdminVenueControllerIntegrationTest extends AbstractControllerIntegrationT
 
     @Test
     void shouldCheckVenueNameAvailability() throws Exception {
-        mockMvc.perform(post("/checkVenueName.do").param("venueName", venueA.getVenueName()))
+        mockMvc.perform(post("/checkVenueName.do").session(adminSession()).param("venueName", venueA.getVenueName()))
                 .andExpect(status().isOk())
                 .andExpect(content().string("false"));
 
-        mockMvc.perform(post("/checkVenueName.do").param("venueName", "全新场馆"))
+        mockMvc.perform(post("/checkVenueName.do").session(adminSession()).param("venueName", "全新场馆"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
     }

@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class AdminNewsControllerIntegrationTest extends AbstractControllerIntegrationTest {
     @Test
     void shouldRenderNewsManagePage() throws Exception {
-        mockMvc.perform(get("/news_manage"))
+        mockMvc.perform(get("/news_manage").session(adminSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("admin/news_manage"))
                 .andExpect(model().attributeExists("total"));
@@ -25,14 +25,14 @@ class AdminNewsControllerIntegrationTest extends AbstractControllerIntegrationTe
 
     @Test
     void shouldRenderNewsAddPage() throws Exception {
-        mockMvc.perform(get("/news_add"))
+        mockMvc.perform(get("/news_add").session(adminSession()))
                 .andExpect(status().isOk())
                 .andExpect(view().name("/admin/news_add"));
     }
 
     @Test
     void shouldRenderNewsEditPage() throws Exception {
-        mockMvc.perform(get("/news_edit").param("newsID", String.valueOf(newerNews.getNewsID())))
+        mockMvc.perform(get("/news_edit").session(adminSession()).param("newsID", String.valueOf(newerNews.getNewsID())))
                 .andExpect(status().isOk())
                 .andExpect(view().name("/admin/news_edit"))
                 .andExpect(model().attributeExists("news"));
@@ -40,7 +40,7 @@ class AdminNewsControllerIntegrationTest extends AbstractControllerIntegrationTe
 
     @Test
     void shouldReturnPagedNewsList() throws Exception {
-        mockMvc.perform(get("/newsList.do").param("page", "1"))
+        mockMvc.perform(get("/newsList.do").session(adminSession()).param("page", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].title").value("新通知"));
@@ -48,7 +48,7 @@ class AdminNewsControllerIntegrationTest extends AbstractControllerIntegrationTe
 
     @Test
     void shouldDeleteNews() throws Exception {
-        mockMvc.perform(post("/delNews.do").param("newsID", String.valueOf(olderNews.getNewsID())))
+        mockMvc.perform(post("/delNews.do").session(adminSession()).param("newsID", String.valueOf(olderNews.getNewsID())))
                 .andExpect(status().isOk())
                 .andExpect(content().string("true"));
 
@@ -58,6 +58,7 @@ class AdminNewsControllerIntegrationTest extends AbstractControllerIntegrationTe
     @Test
     void shouldModifyNewsAndRedirect() throws Exception {
         mockMvc.perform(post("/modifyNews.do")
+                        .session(adminSession())
                         .param("newsID", String.valueOf(newerNews.getNewsID()))
                         .param("title", "新闻已更新")
                         .param("content", "更新后的内容"))
@@ -71,6 +72,7 @@ class AdminNewsControllerIntegrationTest extends AbstractControllerIntegrationTe
     @Test
     void shouldAddNewsAndRedirect() throws Exception {
         mockMvc.perform(post("/addNews.do")
+                        .session(adminSession())
                         .param("title", "新增新闻")
                         .param("content", "新增内容"))
                 .andExpect(status().is3xxRedirection())
