@@ -27,3 +27,11 @@ yujiongshen-pj1
 
 # Local reference documents
 /软件测试计划.pdf
+
+# Fuzzing runtime outputs
+PJ2-Fuzzing-v260530/simple_fuzzer/_result/
+PJ2-Fuzzing-v260530/simple_fuzzer/_persist/
+
+# Python bytecode
+__pycache__/
+*.pyc
