@@ -1,13 +1,22 @@
+from collections import Counter
 import time
-from typing import List, Tuple, Any
+from typing import Any, List, Tuple
 
+from fuzzer.fuzzer import Fuzzer
 from fuzzer.grey_box_fuzzer import GreyBoxFuzzer
-from schedule.path_power_schedule import PathPowerSchedule
 from runner.function_coverage_runner import FunctionCoverageRunner
+from runner.runner import Runner
+from schedule.path_power_schedule import PathPowerSchedule
+from utils.coverage import Location
+from utils.seed import Seed
+
+EDGE_COUNT_CAP = 8
+START_NODE: Location = ("<START>", 0)
+END_NODE: Location = ("<END>", 0)
 
 
 class PathGreyBoxFuzzer(GreyBoxFuzzer):
-    """Count how often individual paths are exercised."""
+    """Count how often edge-based execution paths are exercised."""
 
     def __init__(self, seeds: List[str], schedule: PathPowerSchedule, is_print: bool,
                  persist_dir: str = "_persist"):
@@ -23,6 +32,16 @@ class PathGreyBoxFuzzer(GreyBoxFuzzer):
 ┌───────────────────────┬───────────────────────┬───────────────────────┬───────────────────┬───────────────────┬────────────────┬───────────────────┐
 │        Run Time       │     Last New Path     │    Last Uniq Crash    │    Total Execs    │    Total Paths    │  Uniq Crashes  │   Covered Lines   │
 ├───────────────────────┼───────────────────────┼───────────────────────┼───────────────────┼───────────────────┼────────────────┼───────────────────┤""")
+
+    @staticmethod
+    def build_path_key(trace: List[Location]) -> Tuple:
+        """Build a stable edge-frequency signature from an ordered line trace."""
+        nodes = [START_NODE] + trace + [END_NODE]
+        edge_counts = Counter(zip(nodes, nodes[1:]))
+        return tuple(sorted(
+            (src, dst, min(count, EDGE_COUNT_CAP))
+            for (src, dst), count in edge_counts.items()
+        ))
 
     def print_stats(self):
         if not self.is_print:
@@ -46,15 +65,25 @@ class PathGreyBoxFuzzer(GreyBoxFuzzer):
         print(template)
 
     def run(self, runner: FunctionCoverageRunner) -> Tuple[Any, str]:  # type: ignore
-        """Inform scheduler about path frequency"""
-        result, outcome = super().run(runner)
+        """Inform scheduler about edge-path frequency."""
+        result, outcome = Fuzzer.run(self, runner)
 
-        # Track path: use the coverage set as the path identifier
-        path_key = tuple(sorted(runner.coverage())) if runner.coverage() else ()
-        if path_key and path_key not in self.unique_paths:
+        path_key = self.build_path_key(runner.trace())
+        if path_key not in self.unique_paths:
             self.unique_paths.add(path_key)
             self.last_path_time = time.time()
-        # Update frequency in the schedule
+
         self.schedule.update_path_frequency(path_key)
+
+        if len(self.covered_line) != len(runner.all_coverage):
+            self.covered_line |= runner.all_coverage
+            if outcome == Runner.PASS:
+                self.population.append(Seed(self.inp, runner.coverage(), path_key=path_key))
+
+        if outcome == Runner.FAIL:
+            self.last_crash_time = time.time()
+            self.crash_map[self.inp] = result
+
+        self._maybe_persist()
 
         return result, outcome
