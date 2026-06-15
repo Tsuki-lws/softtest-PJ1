@@ -1,4 +1,5 @@
 import hashlib
+import sys
 import traceback
 from typing import Tuple, Callable, Set, Any, List
 
@@ -9,26 +10,37 @@ from utils.coverage import Coverage, Location
 class FunctionCoverageRunner(Runner):
     def __init__(self, function: Callable) -> None:
         """Initialize.  `function` is a function to be executed"""
-        self._coverage = None
+        self._coverage: Set[Location] = set()
+        self._trace: List[Location] = []
         self.function = function
         self.cumulative_coverage: List[int] = []
         self.all_coverage: Set[Location] = set()
         
     def run_function(self, inp: str) -> Any:
+        exc_info = None
+        result = None
         with Coverage() as cov:
             try:
                 result = self.function(inp)
-            except Exception as exc:
-                raise exc
-            finally:
-                self._coverage = cov.coverage()
-                self.all_coverage |= cov.coverage()
-                self.cumulative_coverage.append(len(self.all_coverage))
+            except Exception:
+                exc_info = sys.exc_info()
+
+        self._coverage = cov.coverage()
+        self._trace = list(cov.trace())
+        self.all_coverage |= self._coverage
+        self.cumulative_coverage.append(len(self.all_coverage))
+
+        if exc_info is not None:
+            _, exc, tb = exc_info
+            raise exc.with_traceback(tb)
 
         return result
 
     def coverage(self) -> Set[Location]:
         return self._coverage
+
+    def trace(self) -> List[Location]:
+        return self._trace
     
     def run(self, inp: str) -> Tuple[Any, str]:
         try:
