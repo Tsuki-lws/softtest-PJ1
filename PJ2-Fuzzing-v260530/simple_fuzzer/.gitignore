@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+
+# Fuzzing runtime output (regenerable)
+_result/
+_persist/
+
+# Experiment persistence snapshots (keep the *.txt comparison logs)
+_eval/persist-*/
+_eval/tune4/

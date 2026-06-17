@@ -5,8 +5,27 @@ import time
 from fuzzer.path_grey_box_fuzzer import PathGreyBoxFuzzer
 from runner.function_coverage_runner import FunctionCoverageRunner
 from schedule.path_power_schedule import PathPowerSchedule
+from schedule.size_power_schedule import SizePowerSchedule
+from schedule.coverage_power_schedule import CoveragePowerSchedule
+from schedule.rare_line_power_schedule import RareLinePowerSchedule
+from schedule.hybrid_power_schedule import HybridPowerSchedule
 from samples.samples import sample1, sample2, sample3, sample4
 from utils.object_utils import dump_object, load_object
+
+SCHEDULES = {
+    "path": PathPowerSchedule,        # RoleC, default, keeps old behavior
+    "size": SizePowerSchedule,        # RoleD, Size-Based (shorter input -> more energy)
+    "coverage": CoveragePowerSchedule,  # RoleD, Coverage-Size Based
+    "rare": RareLinePowerSchedule,    # RoleD, Rare-Line Based
+    "hybrid": HybridPowerSchedule,    # RoleD, mixed: rarity + coverage + length
+}
+
+
+def build_schedule(name: str):
+    """Factory for the available power schedules."""
+    if name not in SCHEDULES:
+        raise ValueError(f"unknown schedule: {name}")
+    return SCHEDULES[name]()
 
 
 class Result:
@@ -38,6 +57,8 @@ def parse_args():
                         help="Fuzzing duration in seconds")
     parser.add_argument("--output-dir", default="_result",
                         help="Directory used to persist the run result")
+    parser.add_argument("--schedule", default="path", choices=tuple(SCHEDULES),
+                        help="Power schedule strategy (path=RoleC; size/coverage/rare/hybrid=RoleD)")
     parser.add_argument("--quiet", action="store_true",
                         help="Disable the status table output")
     return parser.parse_args()
@@ -51,7 +72,7 @@ if __name__ == "__main__":
     seeds = load_object(corpus_path)
 
     persist_dir = os.path.join(args.output_dir, f"persist-sample{args.sample}")
-    grey_fuzzer = PathGreyBoxFuzzer(seeds=seeds, schedule=PathPowerSchedule(),
+    grey_fuzzer = PathGreyBoxFuzzer(seeds=seeds, schedule=build_schedule(args.schedule),
                                     is_print=not args.quiet, persist_dir=persist_dir)
     start_time = time.time()
     grey_fuzzer.runs(f_runner, run_time=args.run_time)
