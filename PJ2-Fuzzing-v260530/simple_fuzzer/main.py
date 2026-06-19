@@ -13,11 +13,11 @@ from samples.samples import sample1, sample2, sample3, sample4
 from utils.object_utils import dump_object, load_object
 
 SCHEDULES = {
-    "path": PathPowerSchedule,        # RoleC, default, keeps old behavior
-    "size": SizePowerSchedule,        # RoleD, Size-Based (shorter input -> more energy)
-    "coverage": CoveragePowerSchedule,  # RoleD, Coverage-Size Based
-    "rare": RareLinePowerSchedule,    # RoleD, Rare-Line Based
-    "hybrid": HybridPowerSchedule,    # RoleD, mixed: rarity + coverage + length
+    "path": PathPowerSchedule,           # default, path-frequency based
+    "size": SizePowerSchedule,           # shorter input -> more energy
+    "coverage": CoveragePowerSchedule,   # larger per-run coverage -> more energy
+    "rare": RareLinePowerSchedule,       # hitting rarely-touched lines -> more energy
+    "hybrid": HybridPowerSchedule,       # rarity x coverage x length x rare-line bonus
 }
 
 
@@ -36,7 +36,11 @@ class Result:
         self.end_time = end_time
 
     def __str__(self):
-        return "Covered Lines: " + str(self.covered_line) + ", Crashes Num: " + str(self.crashes) + ", Start Time: " + str(self.start_time) + ", End Time: " + str(self.end_time)
+        return (
+            f"Covered Lines: {len(self.covered_line)}, "
+            f"Uniq Crashes: {len(self.crashes)}, "
+            f"Duration: {self.end_time - self.start_time:.1f}s"
+        )
 
 
 def build_sample(sample_id: int):
@@ -58,7 +62,7 @@ def parse_args():
     parser.add_argument("--output-dir", default="_result",
                         help="Directory used to persist the run result")
     parser.add_argument("--schedule", default="path", choices=tuple(SCHEDULES),
-                        help="Power schedule strategy (path=RoleC; size/coverage/rare/hybrid=RoleD)")
+                        help="Power schedule strategy: path (default) / size / coverage / rare / hybrid")
     parser.add_argument("--quiet", action="store_true",
                         help="Disable the status table output")
     return parser.parse_args()
