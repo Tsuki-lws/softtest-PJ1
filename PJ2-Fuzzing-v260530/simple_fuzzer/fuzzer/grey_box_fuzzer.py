@@ -10,7 +10,7 @@ from utils.coverage import Location
 from utils.mutator import Mutator
 from runner.function_coverage_runner import FunctionCoverageRunner
 from schedule.power_schedule import PowerSchedule
-from utils.object_utils import dump_object, load_object
+from utils.object_utils import dump_object
 
 from utils.seed import Seed
 
@@ -104,7 +104,7 @@ class GreyBoxFuzzer(Fuzzer):
             self.covered_line |= runner.all_coverage
             if outcome == Runner.PASS:
                 # We have new coverage
-                seed = Seed(self.inp, runner.coverage())
+                seed = self._make_seed(runner)
                 self.population.append(seed)
         if outcome == Runner.FAIL:
             self.last_crash_time = time.time()
@@ -114,6 +114,12 @@ class GreyBoxFuzzer(Fuzzer):
         self._maybe_persist()
 
         return result, outcome
+
+    def _make_seed(self, runner: FunctionCoverageRunner) -> Seed:
+        """Create a Seed from the current input and runner state.
+        Subclasses may override to attach extra attributes (e.g. path_key).
+        """
+        return Seed(self.inp, runner.coverage())
 
     def _maybe_persist(self) -> None:
         """每隔 PERSIST_INTERVAL 秒将 population 和 crash_map 持久化到磁盘，

@@ -1,8 +1,7 @@
 from collections import Counter
 import time
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
 
-from fuzzer.fuzzer import Fuzzer
 from fuzzer.grey_box_fuzzer import GreyBoxFuzzer
 from runner.function_coverage_runner import FunctionCoverageRunner
 from runner.runner import Runner
@@ -24,8 +23,8 @@ class PathGreyBoxFuzzer(GreyBoxFuzzer):
         self.is_print = is_print
         self.schedule: PathPowerSchedule = schedule
         self.last_path_time = self.start_time
-        self.total_paths = 0
         self.unique_paths: set = set()
+        self._last_path_key: Optional[Tuple] = None
 
         if is_print:
             print("""
@@ -42,6 +41,12 @@ class PathGreyBoxFuzzer(GreyBoxFuzzer):
             (src, dst, min(count, EDGE_COUNT_CAP))
             for (src, dst), count in edge_counts.items()
         ))
+
+    def _make_seed(self, runner: FunctionCoverageRunner) -> Seed:
+        """Attach the current edge-path key to the new seed."""
+        path_key = self.build_path_key(runner.trace())
+        self._last_path_key = path_key
+        return Seed(self.inp, runner.coverage(), path_key=path_key)
 
     def print_stats(self):
         if not self.is_print:
@@ -66,24 +71,19 @@ class PathGreyBoxFuzzer(GreyBoxFuzzer):
 
     def run(self, runner: FunctionCoverageRunner) -> Tuple[Any, str]:  # type: ignore
         """Inform scheduler about edge-path frequency."""
-        result, outcome = Fuzzer.run(self, runner)
+        self._last_path_key = None
+        result, outcome = super().run(runner)  # GreyBoxFuzzer.run handles coverage/crash/persist
 
-        path_key = self.build_path_key(runner.trace())
+        # _make_seed was called by GreyBoxFuzzer.run only when new coverage was found (PASS).
+        # For all other outcomes compute the path key directly from the trace.
+        path_key = (self._last_path_key
+                    if self._last_path_key is not None
+                    else self.build_path_key(runner.trace()))
+
         if path_key not in self.unique_paths:
             self.unique_paths.add(path_key)
             self.last_path_time = time.time()
 
         self.schedule.update_path_frequency(path_key)
-
-        if len(self.covered_line) != len(runner.all_coverage):
-            self.covered_line |= runner.all_coverage
-            if outcome == Runner.PASS:
-                self.population.append(Seed(self.inp, runner.coverage(), path_key=path_key))
-
-        if outcome == Runner.FAIL:
-            self.last_crash_time = time.time()
-            self.crash_map[self.inp] = result
-
-        self._maybe_persist()
 
         return result, outcome
