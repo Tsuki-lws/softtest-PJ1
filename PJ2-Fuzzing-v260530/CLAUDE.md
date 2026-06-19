@@ -31,32 +31,38 @@ simple_fuzzer/
 ├── fuzzer/
 │   ├── fuzzer.py                # Base class: fuzz → run → runs loop with time budget
 │   ├── grey_box_fuzzer.py       # Adds seed population, mutation stacking, coverage tracking, crash map
-│   └── path_grey_box_fuzzer.py  # Extends GreyBoxFuzzer with path-frequency awareness (TODO stubs)
+│   └── path_grey_box_fuzzer.py  # Extends GreyBoxFuzzer with edge-frequency path tracking
 ├── runner/
 │   ├── runner.py                     # Base runner (PASS/FAIL/UNRESOLVED outcome)
 │   └── function_coverage_runner.py   # Wraps target function, uses sys.settrace to collect coverage
 ├── schedule/
-│   ├── power_schedule.py        # Base schedule: uniform energy, weighted random choice, MAX_SEEDS cap
-│   └── path_power_schedule.py   # Path-frequency energy assignment (TODO stubs)
+│   ├── power_schedule.py            # Base schedule: uniform energy, weighted random choice, MAX_SEEDS cap
+│   ├── path_power_schedule.py       # Path-frequency energy assignment (rarer path -> higher energy)
+│   ├── size_power_schedule.py       # Size-based: shorter input -> higher energy
+│   ├── coverage_power_schedule.py   # Coverage-size based: larger per-run coverage -> higher energy
+│   ├── rare_line_power_schedule.py  # Rare-line based: hitting rarely-touched lines -> higher energy
+│   └── hybrid_power_schedule.py     # Hybrid: rarity x coverage x length x rare-line bonus
 ├── samples/samples.py           # 4 target functions (numeric, string-format, branch-nesting, HTML)
 ├── corpus/                      # Pickle files containing List[str] seed inputs per sample
 └── utils/
     ├── coverage.py       # Coverage context manager (sys.settrace); Location = (func_name, lineno)
     ├── seed.py           # Seed dataclass: data, coverage set, energy
-    ├── mutator.py        # 7 mutation operators (bitflip, arithmetic, interesting, havoc, swap…)
+    ├── mutator.py        # 9 mutation operators (insert/delete/bitflip/arithmetic/interesting/havoc/swap/dict-token)
     └── object_utils.py   # pickle dump/load/md5 helpers
 ```
 
 Key data flow: `main.py` → `PathGreyBoxFuzzer.runs()` → per iteration: `schedule.choose(population)` → `mutator.mutate()` (stacked) → `FunctionCoverageRunner.run(input)` → coverage diff → update population/crash_map.
 
-## Incomplete TODO Items
+## Status
 
-These files contain TODO stubs that need implementation:
+All four lab tasks are complete. Quick map:
 
-- `schedule/path_power_schedule.py` — `assign_energy` should use path-frequency inversely
-- `fuzzer/path_grey_box_fuzzer.py` — `__init__` and `run` need path-frequency tracking/reporting
+- **Mutator** (`utils/mutator.py`): 9 operators (insert/delete/bitflip/arithmetic/interesting/2x havoc/block swap/dict token) with `latin-1` 1:1 byte mapping and a 3-retry guard against returning empty / identical outputs.
+- **Path-frequency scheduling** (`schedule/path_power_schedule.py` + `fuzzer/path_grey_box_fuzzer.py`): edge-frequency path key (`Counter` over `(src, dst)` edges, capped at 8), `energy = 1 / freq`.
+- **Extra schedulers**: `size`, `coverage`, `rare` (each maps to one reference direction from the spec) plus a `hybrid` strategy with cached base factors.
+- **Persistence**: `GreyBoxFuzzer._maybe_persist` snapshots population / crash_map / covered_line every 30 s and evicts the lowest-energy seeds when the population exceeds 500.
 
-The lab also requires adding at least one new schedule strategy under `schedule/`.
+Switch the schedule with `--schedule {path,size,coverage,rare,hybrid}` (default `path`). Use `eval_schedules.py` for the 5-way comparison and `tools/bench_growth.py` for 1 Hz time-series sampling.
 
 ## Conventions
 

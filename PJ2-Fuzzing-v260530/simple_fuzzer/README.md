@@ -25,8 +25,12 @@ simple_fuzzer/
 - `function_coverage_runner.py`：将字符串输入喂给 Python 函数，并记录运行期间的覆盖率与异常。
 
 ### `schedule/`
-- `power_schedule.py`：基础能量调度策略。
-- `path_power_schedule.py`：按路径频率分配能量的调度策略。
+- `power_schedule.py`：基础能量调度策略（均等能量 + 加权随机选择）。
+- `path_power_schedule.py`：按路径频率分配能量的调度策略（路径越罕见，能量越高）。
+- `size_power_schedule.py`：按输入长度分配能量（输入越短，能量越高）。
+- `coverage_power_schedule.py`：按单次覆盖范围分配能量（覆盖行数越多，能量越高）。
+- `rare_line_power_schedule.py`：按罕见代码行覆盖情况分配能量（命中冷门行越多，能量越高）。
+- `hybrid_power_schedule.py`：融合调度（路径稀有度 × 覆盖范围 × 长度惩罚 × 罕见行加成）。
 
 ### `samples/`
 - 提供 4 个示例程序，覆盖数值处理、字符串解析、分支嵌套和 HTML 解析等典型场景。
@@ -36,8 +40,8 @@ simple_fuzzer/
 
 ### `utils/`
 - `coverage.py`：覆盖率追踪。
-- `Seed.py`：种子对象。
-- `mutator.py`：输入变异算子集合。
+- `seed.py`：种子对象。
+- `mutator.py`：输入变异算子集合（9 种变异策略）。
 - `object_utils.py`：对象序列化、反序列化与哈希工具。
 
 ## 建议使用 uv 管理环境
@@ -48,9 +52,10 @@ simple_fuzzer/
 
 请阅读 [uv 官方文档](https://docs.astral.sh/uv/) 来了解如何安装和使用 uv。
 
+本项目没有 `pyproject.toml`，使用 `.python-version` 锁定 Python 3.14，依赖标准库，所以不需要 `uv sync`。直接用 `uv run` 即可，首次运行会自动安装对应版本的 Python：
+
 ```bash
-uv sync
-uv run main.py --sample 4 --run-time 300
+uv run --python 3.14 python main.py --sample 4 --run-time 300
 ```
 
 如果你希望切换被测样例，可以修改 `--sample` 参数，取值范围为 `1` 到 `4`。
@@ -58,10 +63,27 @@ uv run main.py --sample 4 --run-time 300
 ## 运行说明
 
 ```bash
-uv run main.py --sample 1 --run-time 60
+# 默认调度（路径频率）
+uv run --python 3.14 python main.py --sample 1 --run-time 60
+
+# 指定调度策略（可选：path / size / coverage / rare / hybrid，默认 path）
+uv run --python 3.14 python main.py --sample 4 --run-time 300 --schedule hybrid
+
+# 不打印实时状态表
+uv run --python 3.14 python main.py --sample 2 --run-time 120 --quiet
 ```
 
-运行后会在 `_result/` 下生成序列化结果文件，便于后续查看覆盖率与崩溃统计。
+运行后会在 `_result/` 下生成序列化结果文件，便于后续查看覆盖率与崩溃统计。中间快照（种群 / crash_map / 覆盖行）每 30 秒落盘到 `_result/persist-sample{N}/`。
+
+辅助评测脚本：
+
+```bash
+# 五种调度策略在 4 个 sample 上的对比
+uv run --python 3.14 python eval_schedules.py --run-time 30
+
+# 1 Hz 采样某个 (sample, schedule) 的增长曲线，结果落盘到 _eval/growth/
+uv run --python 3.14 python tools/bench_growth.py --sample 4 --run-time 60
+```
 
 ## 设计说明
 
